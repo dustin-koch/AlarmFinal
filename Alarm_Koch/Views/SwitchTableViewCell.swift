@@ -8,7 +8,18 @@
 
 import UIKit
 
+protocol SwitchTableViewCellDelegate: class {
+    func switchCellSwitchValueChanged(cell: SwitchTableViewCell)
+}
+
 class SwitchTableViewCell: UITableViewCell {
+    
+    var alarm: Alarm? {
+        didSet{
+            updateCellView()
+        }
+    }
+    weak var delegate: SwitchTableViewCellDelegate?
 
     @IBOutlet weak var alarmTimeLabel: UILabel!
     @IBOutlet weak var alarmNameLabel: UILabel!
@@ -16,8 +27,14 @@ class SwitchTableViewCell: UITableViewCell {
     
     
     @IBAction func alarmSwitchTapped(_ sender: UISwitch) {
-        
+        delegate?.switchCellSwitchValueChanged(cell: self)
     }
     
+    func updateCellView(){
+        guard let alarm = alarm else { return }
+        alarmTimeLabel.text = alarm.fireTimeAsString
+        alarmNameLabel.text = alarm.name
+        alarmSwitch.isOn = alarm.enabled
+    }
 
-}
+}// End of Class
