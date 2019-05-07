@@ -18,23 +18,29 @@ class AlarmDetailTableViewController: UITableViewController {
     //MARK - Properties
     var alarm: Alarm? {
         didSet {
-            alarmIsOn = alarm?.enabled ?? false
+            alarmIsOn = alarm?.enabled ?? true
             loadViewIfNeeded()
             updateViews(alarm: alarm)
         }
     }
+    
     var alarmIsOn: Bool = true
     
     //MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
+        updateViews(alarm: nil)
     }
     
     //MARK: - Actions
     @IBAction func enableButtonTapped(_ sender: Any) {
-        guard let alarm = alarm else { return }
-        AlarmController.shared.switchFlipped(alarm: alarm)
-        updateViews(alarm: alarm)
+        if let alarm = alarm {
+            AlarmController.shared.switchFlipped(alarm: alarm)
+            updateViews(alarm: alarm)
+        } else {
+            alarmIsOn = !alarmIsOn
+            updateViews(alarm: nil)
+        }
     }
     
     @IBAction func saveButtonTapped(_ sender: UIBarButtonItem) {
@@ -42,26 +48,36 @@ class AlarmDetailTableViewController: UITableViewController {
             guard let name = alarmNameTextField.text, alarmNameTextField.text != nil else { return }
             AlarmController.shared.updateAlarm(alarm: alarm, fireDate: datePIcker.date, name: name)
         } else {
-            AlarmController.shared.addAlarm(fireDate: datePIcker.date, name: alarmNameTextField.text!)
+            AlarmController.shared.addAlarm(fireDate: datePIcker.date, name: alarmNameTextField.text!, enabled: alarmIsOn)
         }
         navigationController?.popViewController(animated: true)
     }
     
     private func updateViews(alarm: Alarm?){
-        guard let unwrappedAlarm = alarm else { return }
-        alarmNameTextField.text = unwrappedAlarm.name
-        datePIcker.date = unwrappedAlarm.fireDate
-        if unwrappedAlarm.enabled == true {
+        if let unwrappedAlarm = alarm {
+            alarmNameTextField.text = unwrappedAlarm.name
+            datePIcker.date = unwrappedAlarm.fireDate
+            if unwrappedAlarm.enabled == true {
+                saveButtonTitle.setTitle("Alarm is On", for: .normal)
+                saveButtonTitle.backgroundColor = .green
+            } else {
+                saveButtonTitle.setTitle("Alarm is Off", for: .normal)
+                saveButtonTitle.backgroundColor = .red
+            }
+        } else {
             saveButtonTitle.setTitle("Alarm is On", for: .normal)
             saveButtonTitle.backgroundColor = .green
-        } else {
-            saveButtonTitle.setTitle("Alarm is Off", for: .disabled)
-            saveButtonTitle.backgroundColor = .red
+            if alarmIsOn {
+                saveButtonTitle.setTitle("Alarm is On", for: .normal)
+                saveButtonTitle.backgroundColor = .green
+            } else {
+                saveButtonTitle.setTitle("Alarm is Off", for: .normal)
+                saveButtonTitle.backgroundColor = .red
+            }
         }
     }
 
     // MARK: - Table view data source
-
     override func numberOfSections(in tableView: UITableView) -> Int {
         // #warning Incomplete implementation, return the number of sections
         return 3
