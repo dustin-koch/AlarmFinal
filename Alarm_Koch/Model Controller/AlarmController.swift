@@ -7,8 +7,9 @@
 //
 
 import Foundation
+import UserNotifications
 
-class AlarmController {
+class AlarmController: AlarmScheduler {
     
     private init(){
         self.alarms = loadFromPersistence()
@@ -32,24 +33,30 @@ class AlarmController {
         let newAlarm = Alarm(fireDate: fireDate, name: name, enabled: enabled)
         alarms.append(newAlarm)
         saveToPersistence()
+        scheduleUserNotifications(alarm: newAlarm)
         return newAlarm
     }
     
     func updateAlarm(alarm: Alarm, fireDate: Date, name: String) {
+        cancelUserNotifications(alarm: alarm)
         alarm.fireDate = fireDate
         alarm.name = name
         saveToPersistence()
+        scheduleUserNotifications(alarm: alarm)
     }
     
     func deleteAlarm(alarm: Alarm) {
         guard let index = alarms.firstIndex(of: alarm) else { return }
         alarms.remove(at: index)
         saveToPersistence()
+        cancelUserNotifications(alarm: alarm)
+        
     }
     
     func switchFlipped(alarm: Alarm) {
         alarm.enabled = !alarm.enabled
         saveToPersistence()
+        
     }
 
     //Persistence
@@ -85,5 +92,35 @@ class AlarmController {
         }
         return []
     }
+} // end of alarm controller class
+
+
+//MARK: - Notifications
+protocol AlarmScheduler {
+    func scheduleUserNotifications(alarm: Alarm)
+    func cancelUserNotifications(alarm: Alarm)
 }
 
+extension AlarmScheduler {
+    
+    func scheduleUserNotifications(alarm: Alarm) {
+        //set up request
+        let content = UNMutableNotificationContent()
+        content.title = "🔔 ‼️ ⏰ ‼️ 🔔"
+        content.body = "Your alarm \(alarm.name)is going off!"
+        let date = Calendar.current.dateComponents([.hour, .minute], from: alarm.fireDate)
+        let trigger = UNCalendarNotificationTrigger(dateMatching: date, repeats: true)
+        let request = UNNotificationRequest(identifier: alarm.uuid, content: content, trigger: trigger)
+        //add request
+        UNUserNotificationCenter.current().add(request) { (error) in
+            if let error = error {
+                print("Oh snap! Unable to schedule local notification: \(error) : \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    func cancelUserNotifications(alarm: Alarm) {
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [alarm.uuid])
+    }
+
+} // end of extension
